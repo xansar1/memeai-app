@@ -97,9 +97,19 @@ def generate_caption(prompt, openai_key=None):
     except Exception:
         return fallback_caption(prompt)
 
+# ✅ Fixed version of make_memegen_url
 def make_memegen_url(template, top, bottom):
+    def clean(s):
+        # Replace characters that break memegen
+        s = s.replace("—", "-").replace("–", "-")
+        s = s.replace("'", "")       # remove apostrophes
+        s = s.replace("_", " ")      # underscores → space
+        s = s.replace("/", " or ")   # slashes not allowed
+        return s.strip()
+
     def enc(s):
-        return urllib.parse.quote(s, safe='') if s else "_"
+        return urllib.parse.quote(clean(s), safe='') if s else "_"
+
     return f"https://api.memegen.link/images/{template}/{enc(top)}/{enc(bottom)}.png"
 
 def download_image_bytes(url):
@@ -118,7 +128,6 @@ def add_watermark(image_bytes, watermark_text):
     except:
         font = ImageFont.load_default()
 
-    # use textbbox instead of deprecated textsize
     bbox = draw.textbbox((0, 0), watermark_text, font=font)
     text_w, text_h = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
@@ -165,7 +174,7 @@ if random_btn:
         "When WiFi resumes after outage"
     ]
     prompt = random.choice(sample_prompts)
-    st.rerun()  # ✅ fixed
+    st.rerun()
 
 if generate_btn:
     if not prompt:
@@ -182,7 +191,6 @@ if generate_btn:
         st.markdown("**Preview:**")
         try:
             img_bytes = download_image_bytes(meme_url)
-            # use_container_width replaces deprecated use_column_width
             st.image(img_bytes, use_container_width=True)
             if watermark:
                 wm_bytes = add_watermark(img_bytes, watermark_text)
